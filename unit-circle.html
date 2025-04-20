@@ -3,144 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>单位圆之旅 - 三角函数交互学习</title>
+    <title>单位圆之旅 - 三角函数可视化学习</title>
     <link rel="stylesheet" href="css/unit-circle.css">
+    <meta name="description" content="通过交互式单位圆学习三角函数和角度，适合初中生学习使用">
 </head>
 <body>
     <div class="container">
-        <header class="header">
-            <h1>单位圆之旅</h1>
-            <p>通过互动学习，了解单位圆与三角函数的关系</p>
-        </header>
-
-        <section class="instruction-box">
-            <h2>欢迎来到单位圆之旅</h2>
-            <p>单位圆是半径为1的圆，它在理解三角函数方面起着关键作用。在这个互动工具中，你可以通过拖动点来探索单位圆上的坐标与角度的关系。</p>
-            <p>当你移动圆上的点时，观察坐标(x,y)的变化。在单位圆上，x坐标即为cos(θ)，y坐标即为sin(θ)，其中θ是角度。通过这种方式，你可以直观地理解三角函数值随角度变化的规律。</p>
-        </section>
-
-        <div class="game-container">
-            <div class="canvas-container">
-                <svg id="unit-circle-canvas" viewBox="-220 -220 440 440">
-                    <!-- 网格线将由JS动态生成 -->
-                    <g id="grid-lines"></g>
-                    
-                    <!-- 坐标轴 -->
-                    <line class="axis" x1="-200" y1="0" x2="200" y2="0"></line>
-                    <line class="axis" x1="0" y1="-200" x2="0" y2="200"></line>
-                    
-                    <!-- x轴刻度标记 -->
-                    <text x="205" y="15" font-size="12">x</text>
-                    <text x="-15" y="-205" font-size="12">y</text>
-                    
-                    <!-- 单位圆 -->
-                    <circle class="unit-circle" cx="0" cy="0" r="100"></circle>
-                    
-                    <!-- 特殊角度标记(将由JS动态更新) -->
-                    <g id="special-angles"></g>
-                    
-                    <!-- 坐标投影线(将由JS控制显示) -->
-                    <line class="projection-line x-projection" id="x-projection" x1="0" y1="0" x2="0" y2="0"></line>
-                    <line class="projection-line y-projection" id="y-projection" x1="0" y1="0" x2="0" y2="0"></line>
-                    
-                    <!-- 点到原点的连线 -->
-                    <line class="hypotenuse" id="hypotenuse" x1="0" y1="0" x2="100" y2="0"></line>
-                    
-                    <!-- 坐标线 -->
-                    <line class="y-line" id="y-line" x1="100" y1="0" x2="100" y2="0"></line>
-                    <line class="x-line" id="x-line" x1="0" y1="0" x2="100" y2="0"></line>
-                    
-                    <!-- 角度弧 -->
-                    <path class="angle-arc" id="angle-arc" d=""></path>
-                    
-                    <!-- 文本标签 -->
-                    <text class="angle-label" id="angle-label" x="30" y="-10" font-size="14">0°</text>
-                    <text class="x-label" id="x-label" x="50" y="20" font-size="14">cos(θ) = 1</text>
-                    <text class="y-label" id="y-label" x="110" y="-20" font-size="14">sin(θ) = 0</text>
-                    
-                    <!-- 可拖动的点 -->
-                    <circle class="drag-point" id="drag-point" cx="100" cy="0" r="8"></circle>
-                </svg>
-                
-                <div class="controls">
-                    <button class="btn btn-primary" id="toggle-projections">显示投影线</button>
-                    <button class="btn btn-secondary" id="reset-point">重置位置</button>
-                    <button class="btn btn-highlight" id="animate-circle">动画演示</button>
-                </div>
+        <h1>单位圆之旅 - 三角函数可视化学习</h1>
+        
+        <p class="intro">
+            欢迎来到单位圆之旅！这个互动工具可以帮助你直观地理解三角函数（正弦、余弦、正切）及其与单位圆的关系。
+            拖动红色圆点，观察坐标和角度的变化，探索三角函数的本质！
+        </p>
+        
+        <div class="circle-container">
+            <div class="svg-container">
+                <svg id="unit-circle-svg" width="500" height="500" viewBox="-250 -250 500 500"></svg>
             </div>
             
             <div class="info-panel">
-                <div class="info-box">
-                    <h3>坐标与角度信息</h3>
-                    <div class="info-grid">
-                        <span class="info-label">坐标 (x,y):</span>
-                        <span class="info-value" id="coordinates">(1.00, 0.00)</span>
-                        
-                        <span class="info-label">角度 θ:</span>
-                        <span class="info-value" id="angle">0°</span>
-                        
-                        <span class="info-label">cos(θ):</span>
-                        <span class="info-value" id="cos-value">1.00</span>
-                        
-                        <span class="info-label">sin(θ):</span>
-                        <span class="info-value" id="sin-value">0.00</span>
-                        
-                        <span class="info-label">tan(θ):</span>
-                        <span class="info-value" id="tan-value">0.00</span>
-                    </div>
-                    
-                    <div class="formulas">
-                        <div class="formula">sin²θ + cos²θ = 1</div>
-                        <div class="formula">tan(θ) = sin(θ) / cos(θ)</div>
-                    </div>
+                <h2>坐标与角度</h2>
+                <div class="info-item">
+                    <span class="info-label">坐标点 (x, y):</span>
+                    <span id="coordinates" class="info-value">(1.00, 0.00)</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">角度 (度):</span>
+                    <span id="angle-deg" class="info-value">0°</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">角度 (弧度):</span>
+                    <span id="angle-rad" class="info-value">0 rad</span>
                 </div>
                 
-                <div class="info-box">
-                    <h3>挑战模式</h3>
-                    <p>测试你对单位圆和三角函数的理解！</p>
-                    <button class="btn btn-highlight" id="start-challenge">开始挑战</button>
-                    
-                    <div class="quiz-container" id="quiz-container">
-                        <h4 id="quiz-question">问题将在这里显示</h4>
-                        <div class="quiz-options" id="quiz-options">
-                            <!-- 选项将由JS动态生成 -->
-                        </div>
-                        <div class="feedback" id="quiz-feedback"></div>
-                    </div>
+                <h2>三角函数值</h2>
+                <div class="info-item">
+                    <span class="info-label">sin θ (y 坐标):</span>
+                    <span id="sin-value" class="info-value">0.00</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">cos θ (x 坐标):</span>
+                    <span id="cos-value" class="info-value">1.00</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">tan θ (sin θ / cos θ):</span>
+                    <span id="tan-value" class="info-value">0.00</span>
                 </div>
             </div>
         </div>
         
-        <section class="properties-box">
-            <h2>单位圆的特性</h2>
-            <div class="properties-list">
-                <div class="property-item">
-                    <h3>坐标与三角函数的关系</h3>
-                    <p>单位圆上的任意点(x,y)，其中 x = cos(θ)，y = sin(θ)，θ是从正x轴逆时针方向的角度。</p>
-                </div>
-                
-                <div class="property-item">
-                    <h3>特殊角度值</h3>
-                    <p>记住常见的特殊角度值，如0°, 30°, 45°, 60°, 90°等对应的三角函数值，能够帮助你更好地理解和使用三角函数。</p>
-                </div>
-                
-                <div class="property-item">
-                    <h3>象限规律</h3>
-                    <p>了解不同象限中正弦、余弦和正切的符号规律，能够帮助你快速判断三角函数值的正负。</p>
-                </div>
-                
-                <div class="property-item">
-                    <h3>周期性</h3>
-                    <p>三角函数具有周期性：sin(θ + 2π) = sin(θ), cos(θ + 2π) = cos(θ), tan(θ + π) = tan(θ)。</p>
-                </div>
-            </div>
-        </section>
+        <div class="controls">
+            <button id="reset-point">重置点位置</button>
+            <button id="toggle-grid">显示/隐藏网格</button>
+            <button id="toggle-projections">显示/隐藏投影线</button>
+            <button id="show-special-angles">特殊角度</button>
+            <button id="start-challenge">开始挑战</button>
+            <div id="special-angles-menu" class="special-angles-menu" style="display: none;"></div>
+        </div>
         
-        <footer class="footer">
-            <p>单位圆之旅 &copy; 2023 | 一个用于学习三角函数的互动工具</p>
-        </footer>
+        <div id="quiz-container" style="display: none;">
+            <div id="quiz-question"></div>
+            <div id="quiz-options"></div>
+            <div id="quiz-feedback"></div>
+            <button id="next-question" style="display: none;">下一题</button>
+        </div>
+        
+        <div class="explanation">
+            <h2>单位圆与三角函数的关系</h2>
+            <p>单位圆是半径为1的圆，圆心位于坐标系原点(0,0)。在单位圆上任意一点的坐标(x,y)恰好对应着角度θ的余弦值和正弦值：</p>
+            <ul>
+                <li><strong>余弦值 cos θ</strong>：就是单位圆上点的 x 坐标</li>
+                <li><strong>正弦值 sin θ</strong>：就是单位圆上点的 y 坐标</li>
+                <li><strong>正切值 tan θ</strong>：sin θ / cos θ，表示直角三角形对边与邻边的比值</li>
+            </ul>
+            
+            <h2>特殊角度值</h2>
+            <p>有一些特殊角度的三角函数值很容易记住：</p>
+            <ul>
+                <li><strong>0°</strong>: sin 0° = 0, cos 0° = 1, tan 0° = 0</li>
+                <li><strong>30°(π/6)</strong>: sin 30° = 0.5, cos 30° = √3/2, tan 30° = 1/√3</li>
+                <li><strong>45°(π/4)</strong>: sin 45° = cos 45° = 1/√2, tan 45° = 1</li>
+                <li><strong>60°(π/3)</strong>: sin 60° = √3/2, cos 60° = 0.5, tan 60° = √3</li>
+                <li><strong>90°(π/2)</strong>: sin 90° = 1, cos 90° = 0, tan 90° = 无定义</li>
+            </ul>
+            
+            <h2>使用提示</h2>
+            <p>拖动红色圆点绕单位圆移动，观察各个值的变化。点击"特殊角度"按钮可以快速跳转到常用角度位置。开始挑战模式可以测试你对三角函数值的理解！</p>
+        </div>
     </div>
-
+    
     <script src="js/unit-circle.js"></script>
 </body>
 </html>
