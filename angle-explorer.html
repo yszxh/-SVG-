@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角度探索者 - 三角函数动画学习</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        #angle-canvas {
+            width: 100%;
+            max-width: 600px;
+            height: 500px;
+        }
+        .angle-info {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        .info-box {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: var(--box-shadow);
+            margin: 10px;
+            min-width: 200px;
+            text-align: center;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+        .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--dark-color);
+        }
+        .challenge-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+        #challenge-btn {
+            margin-bottom: 15px;
+        }
+        #target-angle {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        .controls-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .control-btn {
+            padding: 8px 16px;
+            background-color: var(--secondary-color);
+            color: var(--dark-color);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .control-btn:hover {
+            background-color: #FFA000;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>角度探索者</h1>
+            <p>理解角度（度数与弧度）、正负角、标准位置角</p>
+        </header>
+        
+        <main>
+            <section class="intro">
+                <div class="info-panel">
+                    <h3>游戏说明</h3>
+                    <p>通过拖动圆上的蓝色点或圆周围的标记来探索角度。你将看到角度的度数和弧度表示，以及正角和负角的对应关系。</p>
+                    <p>尝试"目标挑战"，将角度拖动到指定的位置！</p>
+                </div>
+            </section>
+            
+            <section class="game-container">
+                <div class="canvas-container">
+                    <svg id="angle-canvas" viewBox="-110 -110 220 220">
+                        <!-- 坐标轴 -->
+                        <line x1="-100" y1="0" x2="100" y2="0" stroke="#888" stroke-width="1" />
+                        <line x1="0" y1="-100" x2="0" y2="100" stroke="#888" stroke-width="1" />
+                        
+                        <!-- 坐标轴标签 -->
+                        <text x="105" y="15" font-size="12" fill="#888">x</text>
+                        <text x="-15" y="-95" font-size="12" fill="#888">y</text>
+                        
+                        <!-- 刻度 -->
+                        <line x1="50" y1="-5" x2="50" y2="5" stroke="#888" stroke-width="1" />
+                        <line x1="100" y1="-5" x2="100" y2="5" stroke="#888" stroke-width="1" />
+                        <line x1="-50" y1="-5" x2="-50" y2="5" stroke="#888" stroke-width="1" />
+                        <line x1="-100" y1="-5" x2="-100" y2="5" stroke="#888" stroke-width="1" />
+                        
+                        <line x1="-5" y1="50" x2="5" y2="50" stroke="#888" stroke-width="1" />
+                        <line x1="-5" y1="100" x2="5" y2="100" stroke="#888" stroke-width="1" />
+                        <line x1="-5" y1="-50" x2="5" y2="-50" stroke="#888" stroke-width="1" />
+                        <line x1="-5" y1="-100" x2="5" y2="-100" stroke="#888" stroke-width="1" />
+                        
+                        <!-- 主圆 -->
+                        <circle cx="0" cy="0" r="80" fill="none" stroke="#ccc" stroke-width="1" />
+                        
+                        <!-- 角度标记 - 会被JS更新 -->
+                        <path id="angle-arc" d="M 80 0 A 80 80 0 0 1 80 0" fill="rgba(33, 150, 243, 0.2)" stroke="none" />
+                        
+                        <!-- 负角标记 - 会被JS更新 -->
+                        <path id="negative-angle-arc" d="M 80 0 A 80 80 0 0 0 80 0" fill="rgba(244, 67, 54, 0.2)" stroke="none" display="none" />
+                        
+                        <!-- 始边和终边 -->
+                        <line id="start-ray" x1="0" y1="0" x2="80" y2="0" stroke="#2196F3" stroke-width="2" />
+                        <line id="end-ray" x1="0" y1="0" x2="80" y2="0" stroke="#2196F3" stroke-width="2" />
+                        
+                        <!-- 拖动点 -->
+                        <circle id="drag-point" cx="80" cy="0" r="8" fill="#2196F3" />
+                        
+                        <!-- 角度标签 -->
+                        <text id="angle-label" x="40" y="-20" font-size="12" fill="#2196F3" text-anchor="middle">0°</text>
+                    </svg>
+                </div>
+                
+                <div class="angle-info">
+                    <div class="info-box">
+                        <h3>度数 (Degrees)</h3>
+                        <div id="degrees-value" class="value">0°</div>
+                    </div>
+                    <div class="info-box">
+                        <h3>弧度 (Radians)</h3>
+                        <div id="radians-value" class="value">0 rad</div>
+                    </div>
+                    <div class="info-box">
+                        <h3>类型</h3>
+                        <div id="angle-type" class="value">正角</div>
+                    </div>
+                </div>
+                
+                <div class="controls-container">
+                    <button id="toggle-negative" class="control-btn">切换负角显示</button>
+                    <button id="reset-angle" class="control-btn">重置角度</button>
+                    <button id="snap-90" class="control-btn">吸附到90°刻度</button>
+                </div>
+                
+                <div class="challenge-container">
+                    <button id="challenge-btn" class="btn">开始目标挑战</button>
+                    <div id="challenge-display" style="display:none;">
+                        <p>请将角度拖动到: <span id="target-angle">0°</span></p>
+                    </div>
+                    <div id="feedback" class="feedback" style="display:none;"></div>
+                </div>
+            </section>
+            
+            <section class="info-panel">
+                <h3>角度基础知识</h3>
+                <p><strong>度数 (Degrees)</strong>：一个完整的圆是360度。</p>
+                <p><strong>弧度 (Radians)</strong>：一个完整的圆是2π弧度（约6.28弧度）。π弧度约等于180度。</p>
+                <p><strong>换算关系</strong>：弧度 = 度数 × (π/180)，度数 = 弧度 × (180/π)</p>
+                <p><strong>标准位置角</strong>：起始边在正x轴上，沿逆时针方向旋转形成终边的角。</p>
+                <p><strong>正角</strong>：沿逆时针方向旋转形成的角。</p>
+                <p><strong>负角</strong>：沿顺时针方向旋转形成的角。</p>
+            </section>
+            
+            <a href="index.html" class="home-link btn">返回首页</a>
+        </main>
+        
+        <footer>
+            <p>版权所有：邹雨辰@2025</p>
+        </footer>
+    </div>
+    
+    <script src="js/angle-explorer.js"></script>
+</body>
+</html>
