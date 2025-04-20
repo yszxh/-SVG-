@@ -1,220 +1,280 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // 获取SVG元素和重要组件
-    const svg = document.getElementById('unit-circle-canvas');
-    const dragPoint = document.getElementById('drag-point');
-    const hypotenuse = document.getElementById('hypotenuse');
-    const xProjection = document.getElementById('x-projection');
-    const yProjection = document.getElementById('y-projection');
-    const xLine = document.getElementById('x-line');
-    const yLine = document.getElementById('y-line');
-    const angleArc = document.getElementById('angle-arc');
-    const angleLabel = document.getElementById('angle-label');
-    const xLabel = document.getElementById('x-label');
-    const yLabel = document.getElementById('y-label');
-    const gridLinesGroup = document.getElementById('grid-lines');
-    const specialAnglesGroup = document.getElementById('special-angles');
+    // 获取SVG元素
+    const svgCanvas = document.getElementById('unit-circle-canvas');
     
-    // 获取信息面板的元素
-    const coordinatesSpan = document.getElementById('coordinates');
-    const angleSpan = document.getElementById('angle');
-    const cosValueSpan = document.getElementById('cos-value');
-    const sinValueSpan = document.getElementById('sin-value');
-    const tanValueSpan = document.getElementById('tan-value');
-
-    // 获取按钮元素
-    const toggleProjectionsBtn = document.getElementById('toggle-projections');
-    const resetPointBtn = document.getElementById('reset-point');
-    const animateCircleBtn = document.getElementById('animate-circle');
-    const startChallengeBtn = document.getElementById('start-challenge');
+    // 定义常量和变量
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const CENTER_X = 0;
+    const CENTER_Y = 0;
+    const RADIUS = 180;
+    let dragPoint = { x: RADIUS, y: 0 };
+    let angle = 0;
+    let showXProjection = true;
+    let showYProjection = true;
+    let quizMode = false;
     
-    // 设置初始状态变量
-    let showProjections = false;
-    let isAnimating = false;
-    let animationId = null;
-    const RADIUS = 100; // 单位圆半径
-    
-    // 特殊角度数组 (弧度值)
-    const specialAngles = [
-        { angle: 0, label: "0°" },
-        { angle: Math.PI/6, label: "30°" },
-        { angle: Math.PI/4, label: "45°" },
-        { angle: Math.PI/3, label: "60°" },
-        { angle: Math.PI/2, label: "90°" },
-        { angle: 2*Math.PI/3, label: "120°" },
-        { angle: 3*Math.PI/4, label: "135°" },
-        { angle: 5*Math.PI/6, label: "150°" },
-        { angle: Math.PI, label: "180°" },
-        { angle: 7*Math.PI/6, label: "210°" },
-        { angle: 5*Math.PI/4, label: "225°" },
-        { angle: 4*Math.PI/3, label: "240°" },
-        { angle: 3*Math.PI/2, label: "270°" },
-        { angle: 5*Math.PI/3, label: "300°" },
-        { angle: 7*Math.PI/4, label: "315°" },
-        { angle: 11*Math.PI/6, label: "330°" }
-    ];
-    
-    // 初始化函数
-    function init() {
-        // 绘制网格线
-        drawGridLines();
+    // 初始化SVG元素
+    function initializeSVG() {
+        // 创建坐标轴
+        createAxes();
         
-        // 绘制特殊角度标记
-        drawSpecialAngles();
+        // 创建网格线
+        createGridLines();
         
-        // 设置投影线初始状态
-        updateProjectionVisibility();
+        // 创建单位圆
+        createUnitCircle();
         
-        // 设置拖拽功能
-        setupDragging();
+        // 创建拖动点及相关元素
+        createDragPoint();
         
-        // 设置按钮事件监听器
-        setupEventListeners();
+        // 创建特殊角度标记
+        createSpecialAngleMarkers();
         
-        // 初始更新点的位置和所有相关显示
-        updatePointPosition(1, 0);
+        // 初始化显示信息
+        updateInfo();
     }
     
-    // 绘制网格线
-    function drawGridLines() {
-        // 清除现有网格线
-        gridLinesGroup.innerHTML = '';
+    // 创建坐标轴
+    function createAxes() {
+        // X轴
+        createSVGElement('line', {
+            x1: -240, y1: 0, 
+            x2: 240, y2: 0, 
+            class: 'x-axis'
+        });
         
-        // 绘制水平和垂直网格线
-        for (let i = -2; i <= 2; i += 0.5) {
-            if (i !== 0) { // 跳过坐标轴(已单独绘制)
-                // 水平线
-                const hLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                hLine.setAttribute("class", "grid-line");
-                hLine.setAttribute("x1", "-200");
-                hLine.setAttribute("y1", i * RADIUS);
-                hLine.setAttribute("x2", "200");
-                hLine.setAttribute("y2", i * RADIUS);
-                
-                // 垂直线
-                const vLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                vLine.setAttribute("class", "grid-line");
-                vLine.setAttribute("x1", i * RADIUS);
-                vLine.setAttribute("y1", "-200");
-                vLine.setAttribute("x2", i * RADIUS);
-                vLine.setAttribute("y2", "200");
-                
-                // 主刻度标记（整数值）
-                if (Number.isInteger(i)) {
-                    hLine.setAttribute("class", "grid-line major");
-                    vLine.setAttribute("class", "grid-line major");
-                    
-                    // 添加标签（如果不是0）
-                    if (i !== 0) {
-                        // X轴标签
-                        const xLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                        xLabel.setAttribute("x", i * RADIUS);
-                        xLabel.setAttribute("y", "15");
-                        xLabel.setAttribute("text-anchor", "middle");
-                        xLabel.setAttribute("font-size", "10");
-                        xLabel.textContent = i;
-                        
-                        // Y轴标签
-                        const yLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                        yLabel.setAttribute("x", "15");
-                        yLabel.setAttribute("y", -i * RADIUS + 5);
-                        yLabel.setAttribute("font-size", "10");
-                        yLabel.textContent = i;
-                        
-                        gridLinesGroup.appendChild(xLabel);
-                        gridLinesGroup.appendChild(yLabel);
-                    }
-                }
-                
-                gridLinesGroup.appendChild(hLine);
-                gridLinesGroup.appendChild(vLine);
-            }
-        }
-    }
-    
-    // 绘制特殊角度标记
-    function drawSpecialAngles() {
-        specialAnglesGroup.innerHTML = '';
+        // Y轴
+        createSVGElement('line', {
+            x1: 0, y1: -240, 
+            x2: 0, y2: 240, 
+            class: 'y-axis'
+        });
         
-        specialAngles.forEach(angleInfo => {
-            // 计算角度标记的位置（略微偏移半径）
-            const markRadius = RADIUS * 0.9;
-            const x = markRadius * Math.cos(angleInfo.angle);
-            const y = -markRadius * Math.sin(angleInfo.angle); // 注意SVG的Y轴是向下的
-            
-            // 创建小标记点
-            const marker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            marker.setAttribute("class", "angle-marker");
-            marker.setAttribute("cx", x);
-            marker.setAttribute("cy", y);
-            marker.setAttribute("r", "2");
-            
-            specialAnglesGroup.appendChild(marker);
+        // 坐标轴标签
+        createSVGElement('text', {
+            x: 235, y: -10, 
+            class: 'axis-label',
+            textContent: 'x'
+        });
+        
+        createSVGElement('text', {
+            x: 10, y: -235, 
+            class: 'axis-label',
+            textContent: 'y'
         });
     }
     
-    // 更新投影线显示或隐藏
-    function updateProjectionVisibility() {
-        if (showProjections) {
-            xProjection.style.display = "block";
-            yProjection.style.display = "block";
-        } else {
-            xProjection.style.display = "none";
-            yProjection.style.display = "none";
+    // 创建网格线
+    function createGridLines() {
+        // 主要刻度
+        for (let i = -2; i <= 2; i++) {
+            if (i === 0) continue; // 跳过原点
+            
+            // X轴刻度
+            createSVGElement('line', {
+                x1: i * 90, y1: -5, 
+                x2: i * 90, y2: 5, 
+                class: 'grid-line major'
+            });
+            
+            createSVGElement('text', {
+                x: i * 90, 
+                y: 20, 
+                class: 'coordinate-label',
+                textContent: i
+            });
+            
+            // Y轴刻度
+            createSVGElement('line', {
+                x1: -5, y1: i * 90, 
+                x2: 5, y2: i * 90, 
+                class: 'grid-line major'
+            });
+            
+            createSVGElement('text', {
+                x: -20, 
+                y: i * 90 + 5, 
+                class: 'coordinate-label',
+                textContent: -i
+            });
+        }
+        
+        // 次要刻度
+        for (let i = -4; i <= 4; i++) {
+            if (i % 2 === 0) continue; // 跳过主要刻度
+            
+            // X轴刻度
+            createSVGElement('line', {
+                x1: i * 45, y1: -3, 
+                x2: i * 45, y2: 3, 
+                class: 'grid-line minor'
+            });
+            
+            // Y轴刻度
+            createSVGElement('line', {
+                x1: -3, y1: i * 45, 
+                x2: 3, y2: i * 45, 
+                class: 'grid-line minor'
+            });
         }
     }
     
-    // 设置点的拖拽功能
-    function setupDragging() {
+    // 创建单位圆
+    function createUnitCircle() {
+        createSVGElement('circle', {
+            cx: CENTER_X, 
+            cy: CENTER_Y, 
+            r: RADIUS, 
+            class: 'unit-circle'
+        });
+    }
+    
+    // 创建拖动点及相关元素
+    function createDragPoint() {
+        // X轴投影线
+        window.xProjectionLine = createSVGElement('line', {
+            x1: dragPoint.x, 
+            y1: dragPoint.y, 
+            x2: dragPoint.x, 
+            y2: 0, 
+            class: 'projection-line x-projection'
+        });
+        
+        // Y轴投影线
+        window.yProjectionLine = createSVGElement('line', {
+            x1: dragPoint.x, 
+            y1: dragPoint.y, 
+            x2: 0, 
+            y2: dragPoint.y, 
+            class: 'projection-line y-projection'
+        });
+        
+        // 径向线段
+        window.radiusLine = createSVGElement('line', {
+            x1: CENTER_X, 
+            y1: CENTER_Y, 
+            x2: dragPoint.x, 
+            y2: dragPoint.y, 
+            class: 'radius-line'
+        });
+        
+        // 角度弧
+        window.angleArc = createSVGElement('path', {
+            d: describeArc(CENTER_X, CENTER_Y, 40, 0, angle),
+            class: 'angle-arc'
+        });
+        
+        // 拖动点
+        window.dragPointElement = createSVGElement('circle', {
+            cx: dragPoint.x, 
+            cy: dragPoint.y, 
+            r: 8, 
+            class: 'drag-point'
+        });
+        
+        // 添加拖动点的事件处理
+        setupDragEvents(window.dragPointElement);
+    }
+    
+    // 创建特殊角度标记
+    function createSpecialAngleMarkers() {
+        const specialAngles = [
+            { angle: 0, label: "0°" },
+            { angle: 30, label: "30°" },
+            { angle: 45, label: "45°" },
+            { angle: 60, label: "60°" },
+            { angle: 90, label: "90°" },
+            { angle: 120, label: "120°" },
+            { angle: 135, label: "135°" },
+            { angle: 150, label: "150°" },
+            { angle: 180, label: "180°" },
+            { angle: 210, label: "210°" },
+            { angle: 225, label: "225°" },
+            { angle: 240, label: "240°" },
+            { angle: 270, label: "270°" },
+            { angle: 300, label: "300°" },
+            { angle: 315, label: "315°" },
+            { angle: 330, label: "330°" }
+        ];
+        
+        specialAngles.forEach(item => {
+            const radians = item.angle * (Math.PI / 180);
+            const x = CENTER_X + Math.cos(radians) * (RADIUS + 20);
+            const y = CENTER_Y - Math.sin(radians) * (RADIUS + 20);
+            
+            createSVGElement('text', {
+                x: x,
+                y: y,
+                class: 'special-angle-marker',
+                'data-angle': item.angle,
+                textContent: item.label
+            });
+            
+            // 为特殊角度标记添加点击事件
+            let marker = svgCanvas.lastElementChild;
+            marker.addEventListener('click', function() {
+                if (quizMode) return; // 在quiz模式下禁用点击
+                const clickedAngle = parseInt(this.getAttribute('data-angle'));
+                setAngle(clickedAngle);
+            });
+        });
+    }
+    
+    // 设置拖动事件
+    function setupDragEvents(element) {
         let isDragging = false;
         
-        // 监听点击事件
-        dragPoint.addEventListener('mousedown', startDrag);
-        dragPoint.addEventListener('touchstart', startDrag);
+        element.addEventListener('mousedown', startDrag);
+        element.addEventListener('touchstart', startDrag);
         
-        // 监听移动事件
-        svg.addEventListener('mousemove', drag);
-        svg.addEventListener('touchmove', drag);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('touchmove', drag);
         
-        // 监听释放事件
-        window.addEventListener('mouseup', endDrag);
-        window.addEventListener('touchend', endDrag);
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
         
         function startDrag(e) {
+            if (quizMode) return; // 在quiz模式下禁用拖动
             isDragging = true;
             e.preventDefault();
         }
         
         function drag(e) {
-            if (isDragging && !isAnimating) {
-                e.preventDefault();
-                
-                // 获取鼠标/触摸位置相对于SVG的坐标
-                let point;
-                if (e.type.includes('mouse')) {
-                    const svgRect = svg.getBoundingClientRect();
-                    point = {
-                        x: e.clientX - svgRect.left - svgRect.width / 2,
-                        y: e.clientY - svgRect.top - svgRect.height / 2
-                    };
-                } else { // 触摸事件
-                    const svgRect = svg.getBoundingClientRect();
-                    const touch = e.touches[0];
-                    point = {
-                        x: touch.clientX - svgRect.left - svgRect.width / 2,
-                        y: touch.clientY - svgRect.top - svgRect.height / 2
-                    };
-                }
-                
-                // 计算角度和投影到单位圆上的位置
-                const angle = Math.atan2(-point.y, point.x); // 注意SVG的Y轴是向下的
-                
-                // 计算单位圆上的位置
-                const x = Math.cos(angle);
-                const y = Math.sin(angle);
-                
-                // 更新点的位置和相关显示
-                updatePointPosition(x, y);
+            if (!isDragging) return;
+            e.preventDefault();
+            
+            // 获取鼠标相对于SVG的坐标
+            const svgRect = svgCanvas.getBoundingClientRect();
+            const svgWidth = svgRect.width;
+            const svgHeight = svgRect.height;
+            
+            let clientX, clientY;
+            if (e.type === 'touchmove') {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
             }
+            
+            // 将视口坐标转换为SVG坐标系
+            const viewportX = clientX - svgRect.left;
+            const viewportY = clientY - svgRect.top;
+            
+            // 将视口坐标转换为SVG坐标系（考虑viewBox）
+            const svgX = (viewportX / svgWidth * 500) - 250;
+            const svgY = (viewportY / svgHeight * 500) - 250;
+            
+            // 计算点到原点的距离
+            const distance = Math.sqrt(svgX * svgX + svgY * svgY);
+            
+            // 将点约束到圆上
+            const scale = RADIUS / distance;
+            dragPoint.x = svgX * scale;
+            dragPoint.y = svgY * scale;
+            
+            // 更新界面
+            updatePointPosition();
         }
         
         function endDrag() {
@@ -222,279 +282,377 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // 设置按钮事件监听器
-    function setupEventListeners() {
-        // 切换投影线显示/隐藏
-        toggleProjectionsBtn.addEventListener('click', function() {
-            showProjections = !showProjections;
-            updateProjectionVisibility();
-            
-            // 更新按钮文字
-            toggleProjectionsBtn.textContent = showProjections ? "隐藏投影线" : "显示投影线";
-        });
+    // 更新点的位置及相关元素
+    function updatePointPosition() {
+        // 更新角度
+        const dx = dragPoint.x - CENTER_X;
+        const dy = CENTER_Y - dragPoint.y; // 注意SVG的Y轴是向下的，所以需要取反
+        angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        if (angle < 0) angle += 360;
         
-        // 重置点的位置
-        resetPointBtn.addEventListener('click', function() {
-            // 停止可能正在进行的动画
-            stopAnimation();
-            
-            // 重置到初始位置 (1, 0)
-            updatePointPosition(1, 0);
-        });
+        // 更新拖动点位置
+        window.dragPointElement.setAttribute('cx', dragPoint.x);
+        window.dragPointElement.setAttribute('cy', dragPoint.y);
         
-        // 动画演示
-        animateCircleBtn.addEventListener('click', function() {
-            if (isAnimating) {
-                stopAnimation();
-                animateCircleBtn.textContent = "动画演示";
+        // 更新径向线段
+        window.radiusLine.setAttribute('x2', dragPoint.x);
+        window.radiusLine.setAttribute('y2', dragPoint.y);
+        
+        // 更新X轴投影线
+        window.xProjectionLine.setAttribute('x1', dragPoint.x);
+        window.xProjectionLine.setAttribute('y1', dragPoint.y);
+        window.xProjectionLine.setAttribute('x2', dragPoint.x);
+        window.xProjectionLine.setAttribute('visibility', showXProjection ? 'visible' : 'hidden');
+        
+        // 更新Y轴投影线
+        window.yProjectionLine.setAttribute('x1', dragPoint.x);
+        window.yProjectionLine.setAttribute('y1', dragPoint.y);
+        window.yProjectionLine.setAttribute('y2', dragPoint.y);
+        window.yProjectionLine.setAttribute('visibility', showYProjection ? 'visible' : 'hidden');
+        
+        // 更新角度弧
+        window.angleArc.setAttribute('d', describeArc(CENTER_X, CENTER_Y, 40, 0, angle));
+        
+        // 更新信息显示
+        updateInfo();
+    }
+    
+    // 更新信息面板
+    function updateInfo() {
+        // 计算单位圆上的实际坐标（-1到1之间）
+        const unitX = dragPoint.x / RADIUS;
+        const unitY = -dragPoint.y / RADIUS; // 注意SVG的Y轴是向下的，所以取反
+        
+        // 计算三角函数值
+        const sinValue = Math.sin(angle * Math.PI / 180);
+        const cosValue = Math.cos(angle * Math.PI / 180);
+        const tanValue = Math.tan(angle * Math.PI / 180);
+        
+        // 更新显示
+        document.getElementById('coordinate-info').textContent = 
+            `(${unitX.toFixed(2)}, ${unitY.toFixed(2)})`;
+        document.getElementById('angle-info').textContent = 
+            `${Math.round(angle)}°`;
+        document.getElementById('radian-info').textContent = 
+            `${(angle * Math.PI / 180).toFixed(2)} rad`;
+        document.getElementById('sin-info').textContent = 
+            `${sinValue.toFixed(2)}`;
+        document.getElementById('cos-info').textContent = 
+            `${cosValue.toFixed(2)}`;
+        document.getElementById('tan-info').textContent = 
+            Math.abs(cosValue) < 0.001 ? '无穷大' : `${tanValue.toFixed(2)}`;
+    }
+    
+    // 设置点到特定角度
+    function setAngle(degrees) {
+        // 计算弧度
+        const radians = degrees * Math.PI / 180;
+        
+        // 计算新的坐标
+        dragPoint.x = CENTER_X + Math.cos(radians) * RADIUS;
+        dragPoint.y = CENTER_Y - Math.sin(radians) * RADIUS; // 注意SVG的Y轴是向下的
+        
+        // 更新界面
+        updatePointPosition();
+    }
+    
+    // 生成角度弧的SVG路径
+    function describeArc(x, y, radius, startAngle, endAngle) {
+        startAngle = startAngle * Math.PI / 180;
+        endAngle = endAngle * Math.PI / 180;
+        
+        const start = {
+            x: x + radius * Math.cos(startAngle),
+            y: y - radius * Math.sin(startAngle) // 注意SVG的Y轴是向下的
+        };
+        
+        const end = {
+            x: x + radius * Math.cos(endAngle),
+            y: y - radius * Math.sin(endAngle)
+        };
+        
+        const largeArcFlag = endAngle - startAngle <= Math.PI ? 0 : 1;
+        
+        return [
+            "M", start.x, start.y,
+            "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
+        ].join(" ");
+    }
+    
+    // 创建并添加SVG元素的辅助函数
+    function createSVGElement(type, attributes) {
+        const element = document.createElementNS(SVG_NS, type);
+        
+        for (const key in attributes) {
+            if (key === 'textContent') {
+                element.textContent = attributes[key];
             } else {
-                startAnimation();
-                animateCircleBtn.textContent = "停止动画";
+                element.setAttribute(key, attributes[key]);
             }
+        }
+        
+        svgCanvas.appendChild(element);
+        return element;
+    }
+    
+    // 初始化按钮事件
+    function initializeButtonEvents() {
+        // 切换X轴投影
+        document.getElementById('toggle-x-projection').addEventListener('click', function() {
+            showXProjection = !showXProjection;
+            updatePointPosition();
+        });
+        
+        // 切换Y轴投影
+        document.getElementById('toggle-y-projection').addEventListener('click', function() {
+            showYProjection = !showYProjection;
+            updatePointPosition();
+        });
+        
+        // 重置位置
+        document.getElementById('reset-point').addEventListener('click', function() {
+            if (quizMode) return; // 在quiz模式下禁用
+            setAngle(0);
+        });
+        
+        // 特殊角度按钮
+        document.getElementById('special-angles').addEventListener('click', function() {
+            if (quizMode) return; // 在quiz模式下禁用
+            
+            // 创建特殊角度弹出菜单
+            const specialAngles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+            let menu = document.getElementById('special-angles-menu');
+            
+            if (menu) {
+                menu.remove();
+                return;
+            }
+            
+            menu = document.createElement('div');
+            menu.id = 'special-angles-menu';
+            menu.className = 'special-angles-menu';
+            
+            specialAngles.forEach(angle => {
+                const button = document.createElement('button');
+                button.textContent = `${angle}°`;
+                button.addEventListener('click', function() {
+                    setAngle(angle);
+                    menu.remove();
+                });
+                menu.appendChild(button);
+            });
+            
+            document.querySelector('.controls').appendChild(menu);
+            
+            // 点击外部关闭菜单
+            document.addEventListener('click', function closeMenu(e) {
+                if (!menu.contains(e.target) && e.target.id !== 'special-angles') {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                }
+            });
         });
         
         // 开始挑战按钮
-        startChallengeBtn.addEventListener('click', function() {
-            startChallenge();
+        document.getElementById('start-challenge').addEventListener('click', function() {
+            toggleQuizMode();
+        });
+        
+        // 下一题按钮
+        document.getElementById('next-question').addEventListener('click', function() {
+            if (quizMode) {
+                generateQuestion();
+            }
         });
     }
     
-    // 更新点的位置和所有相关显示
-    function updatePointPosition(x, y) {
-        // 确保点在单位圆上（归一化）
-        const distance = Math.sqrt(x*x + y*y);
-        if (distance !== 0) {
-            x = x / distance;
-            y = y / distance;
-        }
+    // 切换测验模式
+    function toggleQuizMode() {
+        quizMode = !quizMode;
         
-        // 翻转y坐标，因为SVG的y轴是向下的
-        const svgY = -y;
+        const quizContainer = document.getElementById('quiz-container');
+        const startButton = document.getElementById('start-challenge');
         
-        // 缩放到圆的实际大小
-        const svgX = x * RADIUS;
-        const svgYscaled = svgY * RADIUS;
-        
-        // 更新可拖动点的位置
-        dragPoint.setAttribute("cx", svgX);
-        dragPoint.setAttribute("cy", svgYscaled);
-        
-        // 更新从原点到点的线
-        hypotenuse.setAttribute("x2", svgX);
-        hypotenuse.setAttribute("y2", svgYscaled);
-        
-        // 更新投影线
-        xProjection.setAttribute("x1", svgX);
-        xProjection.setAttribute("y1", 0);
-        xProjection.setAttribute("x2", svgX);
-        xProjection.setAttribute("y2", svgYscaled);
-        
-        yProjection.setAttribute("x1", 0);
-        yProjection.setAttribute("y1", svgYscaled);
-        yProjection.setAttribute("x2", svgX);
-        yProjection.setAttribute("y2", svgYscaled);
-        
-        // 更新坐标线
-        xLine.setAttribute("x1", 0);
-        xLine.setAttribute("y1", 0);
-        xLine.setAttribute("x2", svgX);
-        xLine.setAttribute("y2", 0);
-        
-        yLine.setAttribute("x1", svgX);
-        yLine.setAttribute("y1", 0);
-        yLine.setAttribute("x2", svgX);
-        yLine.setAttribute("y2", svgYscaled);
-        
-        // 计算角度（弧度和角度）
-        let angleRad = Math.atan2(y, x);
-        if (angleRad < 0) {
-            angleRad += 2 * Math.PI; // 角度范围调整到 [0, 2π)
-        }
-        const angleDeg = (angleRad * 180 / Math.PI).toFixed(0);
-        
-        // 更新角度弧
-        const arcLargeFlag = angleRad > Math.PI ? 1 : 0;
-        const arcPath = `M 0 0 L ${RADIUS * 0.3} 0 A ${RADIUS * 0.3} ${RADIUS * 0.3} 0 ${arcLargeFlag} 0 ${RADIUS * 0.3 * Math.cos(angleRad)} ${-RADIUS * 0.3 * Math.sin(angleRad)} Z`;
-        angleArc.setAttribute("d", arcPath);
-        
-        // 更新角度标签位置
-        const labelRadius = RADIUS * 0.4;
-        const midAngle = angleRad / 2;
-        angleLabel.setAttribute("x", labelRadius * Math.cos(midAngle));
-        angleLabel.setAttribute("y", -labelRadius * Math.sin(midAngle));
-        angleLabel.textContent = `${angleDeg}°`;
-        
-        // 更新坐标标签
-        xLabel.setAttribute("x", svgX / 2);
-        xLabel.setAttribute("y", 20);
-        xLabel.textContent = `cos(θ) = ${x.toFixed(2)}`;
-        
-        yLabel.setAttribute("x", svgX + 5);
-        yLabel.setAttribute("y", svgYscaled / 2);
-        yLabel.textContent = `sin(θ) = ${y.toFixed(2)}`;
-        
-        // 更新信息面板
-        coordinatesSpan.textContent = `(${x.toFixed(2)}, ${y.toFixed(2)})`;
-        angleSpan.textContent = `${angleDeg}° (${(angleRad).toFixed(2)} rad)`;
-        cosValueSpan.textContent = x.toFixed(2);
-        sinValueSpan.textContent = y.toFixed(2);
-        
-        // 计算正切值 (处理除以零的情况)
-        let tanValue = x !== 0 ? y / x : (y > 0 ? Infinity : -Infinity);
-        tanValueSpan.textContent = tanValue === Infinity ? "∞" : 
-                                  tanValue === -Infinity ? "-∞" : 
-                                  tanValue.toFixed(2);
-    }
-    
-    // 开始动画
-    function startAnimation() {
-        isAnimating = true;
-        let angle = 0;
-        
-        function animate() {
-            // 计算位置
-            const x = Math.cos(angle);
-            const y = Math.sin(angle);
-            
-            // 更新点的位置
-            updatePointPosition(x, y);
-            
-            // 增加角度
-            angle += 0.02;
-            if (angle >= 2 * Math.PI) {
-                angle = 0;
-            }
-            
-            // 继续动画
-            animationId = requestAnimationFrame(animate);
-        }
-        
-        animate();
-    }
-    
-    // 停止动画
-    function stopAnimation() {
-        if (isAnimating) {
-            isAnimating = false;
-            cancelAnimationFrame(animationId);
-            animateCircleBtn.textContent = "动画演示";
-            animationId = null;
+        if (quizMode) {
+            quizContainer.style.display = 'block';
+            startButton.textContent = '结束挑战';
+            generateQuestion();
+        } else {
+            quizContainer.style.display = 'none';
+            startButton.textContent = '开始挑战';
+            document.getElementById('quiz-feedback').textContent = '';
+            setAngle(0); // 重置点位置
         }
     }
     
-    // 挑战模式
-    const quizContainer = document.getElementById('quiz-container');
-    const quizQuestion = document.getElementById('quiz-question');
-    const quizOptions = document.getElementById('quiz-options');
-    const quizFeedback = document.getElementById('quiz-feedback');
-    
-    let currentQuizQuestion = null;
-    let quizScore = 0;
-    let quizTotal = 0;
-    
-    // 题目数据库
-    const quizQuestions = [
-        {
-            question: "单位圆上的点在角度为90°时，其坐标是多少？",
-            options: ["(1, 0)", "(0, 1)", "(-1, 0)", "(0, -1)"],
-            answer: 1
-        },
-        {
-            question: "sin(60°)等于多少？",
-            options: ["0.5", "0.866", "1", "0"],
-            answer: 1
-        },
-        {
-            question: "cos(180°)等于多少？",
-            options: ["0", "1", "-1", "0.5"],
-            answer: 2
-        },
-        {
-            question: "当角度为45°时，sin(θ)和cos(θ)的关系是？",
-            options: ["sin(θ) > cos(θ)", "sin(θ) < cos(θ)", "sin(θ) = cos(θ)", "sin(θ) = -cos(θ)"],
-            answer: 2
-        },
-        {
-            question: "在第三象限（180°到270°之间），sin(θ)和cos(θ)的符号分别是？",
-            options: ["正，正", "正，负", "负，正", "负，负"],
-            answer: 3
-        },
-        {
-            question: "tan(θ)在哪些角度下是未定义的？",
-            options: ["0°和180°", "90°和270°", "45°和225°", "60°和240°"],
-            answer: 1
+    // 生成测验问题
+    function generateQuestion() {
+        const questionTypes = [
+            'findAngle',
+            'findCoordinate',
+            'findSin',
+            'findCos',
+            'findTan'
+        ];
+        
+        const questionType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
+        const specialAngles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+        const randomAngle = specialAngles[Math.floor(Math.random() * specialAngles.length)];
+        
+        // 设置点到随机角度
+        setAngle(randomAngle);
+        
+        const questionElement = document.getElementById('quiz-question');
+        const optionsElement = document.getElementById('quiz-options');
+        const feedbackElement = document.getElementById('quiz-feedback');
+        
+        // 清空之前内容
+        optionsElement.innerHTML = '';
+        feedbackElement.textContent = '';
+        
+        // 准备问题
+        switch (questionType) {
+            case 'findAngle':
+                questionElement.textContent = '单位圆上红点当前的角度θ是多少？';
+                createOptions(randomAngle, 'angle');
+                break;
+                
+            case 'findCoordinate':
+                questionElement.textContent = '单位圆上红点当前的坐标(x,y)是什么？';
+                createOptions(randomAngle, 'coordinate');
+                break;
+                
+            case 'findSin':
+                questionElement.textContent = '当前角度θ的sin(θ)值是多少？';
+                createOptions(randomAngle, 'sin');
+                break;
+                
+            case 'findCos':
+                questionElement.textContent = '当前角度θ的cos(θ)值是多少？';
+                createOptions(randomAngle, 'cos');
+                break;
+                
+            case 'findTan':
+                questionElement.textContent = '当前角度θ的tan(θ)值是多少？';
+                createOptions(randomAngle, 'tan');
+                break;
         }
-    ];
-    
-    // 开始挑战
-    function startChallenge() {
-        quizContainer.style.display = 'block';
-        quizScore = 0;
-        quizTotal = 0;
-        presentNextQuestion();
-        startChallengeBtn.textContent = "重新挑战";
     }
     
-    // 呈现下一个问题
-    function presentNextQuestion() {
-        // 随机选择问题
-        const randomIndex = Math.floor(Math.random() * quizQuestions.length);
-        currentQuizQuestion = quizQuestions[randomIndex];
+    // 创建选项
+    function createOptions(correctAngle, questionType) {
+        const radians = correctAngle * Math.PI / 180;
+        let correctAnswer, options = [];
         
-        // 显示问题
-        quizQuestion.textContent = currentQuizQuestion.question;
+        const sinValue = Math.sin(radians);
+        const cosValue = Math.cos(radians);
+        const tanValue = Math.tan(radians);
         
-        // 清除上一次的选项和反馈
-        quizOptions.innerHTML = '';
-        quizFeedback.textContent = '';
-        quizFeedback.className = 'feedback';
+        switch (questionType) {
+            case 'angle':
+                correctAnswer = `${correctAngle}°`;
+                options = [
+                    `${correctAngle}°`,
+                    `${(correctAngle + 45) % 360}°`,
+                    `${(correctAngle + 90) % 360}°`,
+                    `${(correctAngle + 180) % 360}°`
+                ];
+                break;
+                
+            case 'coordinate':
+                correctAnswer = `(${cosValue.toFixed(2)}, ${sinValue.toFixed(2)})`;
+                options = [
+                    `(${cosValue.toFixed(2)}, ${sinValue.toFixed(2)})`,
+                    `(${sinValue.toFixed(2)}, ${cosValue.toFixed(2)})`,
+                    `(${(-cosValue).toFixed(2)}, ${sinValue.toFixed(2)})`,
+                    `(${cosValue.toFixed(2)}, ${(-sinValue).toFixed(2)})`
+                ];
+                break;
+                
+            case 'sin':
+                correctAnswer = `${sinValue.toFixed(2)}`;
+                options = [
+                    `${sinValue.toFixed(2)}`,
+                    `${cosValue.toFixed(2)}`,
+                    `${(-sinValue).toFixed(2)}`,
+                    `${(sinValue/2).toFixed(2)}`
+                ];
+                break;
+                
+            case 'cos':
+                correctAnswer = `${cosValue.toFixed(2)}`;
+                options = [
+                    `${cosValue.toFixed(2)}`,
+                    `${sinValue.toFixed(2)}`,
+                    `${(-cosValue).toFixed(2)}`,
+                    `${(cosValue/2).toFixed(2)}`
+                ];
+                break;
+                
+            case 'tan':
+                if (Math.abs(cosValue) < 0.001) {
+                    correctAnswer = '无穷大';
+                    options = ['无穷大', '0', '1', '-1'];
+                } else {
+                    correctAnswer = `${tanValue.toFixed(2)}`;
+                    options = [
+                        `${tanValue.toFixed(2)}`,
+                        `${(1/tanValue).toFixed(2)}`,
+                        `${(-tanValue).toFixed(2)}`,
+                        `${(tanValue*2).toFixed(2)}`
+                    ];
+                }
+                break;
+        }
         
-        // 添加选项
-        currentQuizQuestion.options.forEach((option, index) => {
-            const optionButton = document.createElement('button');
-            optionButton.className = 'option-btn';
-            optionButton.textContent = option;
-            optionButton.dataset.index = index;
+        // 打乱选项顺序
+        options = shuffleArray(options);
+        
+        const optionsElement = document.getElementById('quiz-options');
+        
+        options.forEach(option => {
+            const button = document.createElement('button');
+            button.className = 'quiz-option';
+            button.textContent = option;
             
-            optionButton.addEventListener('click', function() {
-                checkAnswer(index);
+            button.addEventListener('click', function() {
+                const allButtons = document.querySelectorAll('.quiz-option');
+                allButtons.forEach(btn => {
+                    btn.disabled = true;
+                    if (btn.textContent === correctAnswer) {
+                        btn.classList.add('correct');
+                    } else {
+                        btn.classList.add('incorrect');
+                    }
+                });
+                
+                const feedbackElement = document.getElementById('quiz-feedback');
+                if (option === correctAnswer) {
+                    feedbackElement.textContent = '回答正确！';
+                    feedbackElement.className = 'feedback correct';
+                } else {
+                    feedbackElement.textContent = `回答错误！正确答案是：${correctAnswer}`;
+                    feedbackElement.className = 'feedback incorrect';
+                }
             });
             
-            quizOptions.appendChild(optionButton);
+            optionsElement.appendChild(button);
         });
     }
     
-    // 检查答案
-    function checkAnswer(selectedIndex) {
-        quizTotal++;
-        
-        // 禁用所有选项按钮
-        const optionButtons = quizOptions.querySelectorAll('.option-btn');
-        optionButtons.forEach(button => {
-            button.disabled = true;
-        });
-        
-        // 高亮正确答案
-        optionButtons[currentQuizQuestion.answer].classList.add('correct');
-        
-        // 如果选择错误，高亮所选答案
-        if (selectedIndex !== currentQuizQuestion.answer) {
-            optionButtons[selectedIndex].classList.add('incorrect');
-            quizFeedback.textContent = "回答错误！请重试。";
-            quizFeedback.className = 'feedback incorrect';
-        } else {
-            quizScore++;
-            quizFeedback.textContent = "回答正确！";
-            quizFeedback.className = 'feedback correct';
+    // 数组打乱顺序
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
         }
-        
-        // 更新评分
-        quizFeedback.textContent += ` 当前得分: ${quizScore}/${quizTotal}`;
-        
-        // 延迟后显示下一个问题
-        setTimeout(presentNextQuestion, 2000);
+        return array;
     }
     
-    // 初始化应用
-    init();
+    // 初始化
+    initializeSVG();
+    initializeButtonEvents();
+    
+    // 隐藏测验容器
+    document.getElementById('quiz-container').style.display = 'none';
 });
